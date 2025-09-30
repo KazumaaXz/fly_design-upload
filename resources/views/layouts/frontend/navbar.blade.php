@@ -24,8 +24,6 @@
                                 Home
                             </a>
                         </li>
-                        <li class="nav-item me-3"> <a class="nav-link text-dark"
-                                href="http://localhost:8000/articles/about">About</a> </li>
                         <li class="nav-item me-2">
                             <a class="nav-link @yield('articlesActive')" href="{{ route('home.articles.index') }}">
                                 {{ __('Blog') }}
