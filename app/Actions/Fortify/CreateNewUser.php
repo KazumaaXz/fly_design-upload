@@ -7,15 +7,17 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
+use Illuminate\Support\Str;
 
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules;
 
     /**
-     * Validate and create a newly registered user.
+     * Validasi dan buat user baru saat registrasi.
      *
-     * @param  array<string, string>  $input
+     * @param  array<string, mixed>  $input
+     * @return \App\Models\User
      */
     public function create(array $input): User
     {
@@ -29,27 +31,27 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
-            'gender' => ['nullable', Rule::in(['Laki-laki', 'Perempuan', 'Lainnya'])],
+            'gender' => ['required', Rule::in(['Laki-laki', 'Perempuan', 'Lainnya'])],
             'phone' => ['required', 'string', 'max:15'],
             'instagram' => ['nullable', 'string', 'max:255'],
-            'image' => ['nullable', 'image', 'max:2048'], // Validasi untuk gambar
-            // 'role' tidak perlu divalidasi di sini karena akan diatur default 'user'
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ])->validate();
 
+        // Upload gambar jika ada
         $imagePath = null;
-        // Periksa apakah ada file gambar yang diunggah
         if (isset($input['image']) && $input['image'] instanceof \Illuminate\Http\UploadedFile) {
-            // Simpan gambar ke disk 'public' di folder 'users'
-            $imagePath = $input['image']->store('users', 'public');
+            $fileName = Str::random(10) . '.' . $input['image']->getClientOriginalExtension();
+            $imagePath = $input['image']->storeAs('users', $fileName, 'public');
         }
 
+        // Simpan data ke database
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
-            'gender' => $input['gender'] ?? null, 
+            'gender' => $input['gender'] ?? null,
             'phone' => $input['phone'],
-            'instagram' => $input['instagram'] ?? null, 
+            'instagram' => $input['instagram'] ?? null,
             'role' => 'user',
             'image' => $imagePath,
             'email_verified_at' => now(), 

@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\InboxController;
 use App\Http\Controllers\Admin\InformationController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProfileController;
+use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
+use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CartController;
 
@@ -87,3 +89,12 @@ Route::middleware(['auth', 'role:admin'])->name('admin.')->group(function () {
     Route::put('admin/inbox/{inbox}/toggle-status', [InboxController::class, 'toggleStatus'])->name('inbox.toggleStatus');
     Route::delete('admin/inbox/{inbox}', [InboxController::class, 'destroy'])->name('inbox.destroy');
 });
+
+// login
+Route::get('/login', [AuthenticatedSessionController::class, 'create'])
+    ->middleware(['check'])
+    ->name('login');
+
+// register
+Route::get('/register', [RegisteredUserController::class, 'create'])
+    ->name('register');

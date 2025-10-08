@@ -9,25 +9,19 @@ use App\Actions\Fortify\UpdateUserProfileInformation;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
-use Illuminate\Support\Facades\Route;
 
 class FortifyServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         Fortify::createUsersUsing(CreateNewUser::class);
@@ -36,9 +30,9 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
+        // Rate limiter untuk login dan 2FA
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-
+            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())) . '|' . $request->ip());
             return Limit::perMinute(5)->by($throttleKey);
         });
 
@@ -46,42 +40,33 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
-        // login and register
-        Route::middleware(['web', 'check'])->group(function() {
-            Fortify::loginView(fn() => view('auth/login'));
-            Fortify::registerView(fn() => view('auth/register'));
+        // View untuk login & register
+        Route::middleware(['web', 'check'])->group(function () {
+            Fortify::loginView(fn() => view('auth.login'));
+            Fortify::registerView(fn() => view('auth.register'));
         });
 
-        //login
-        //  Fortify::loginView(function(){
-        //     return view('auth/login');	//return view menggunakan blade 
-        //  });
+        // Custom response
+        $this->app->singleton(
+            \Laravel\Fortify\Contracts\LogoutResponse::class,
+            \App\Http\Responses\LogoutResponse::class
+        );
 
-        //logout
-         $this->app->singleton(\Laravel\Fortify\Contracts\LogoutResponse::class,
-         \App\Http\Responses\LogoutResponse::class);
-
-        // login
         $this->app->singleton(
             \Laravel\Fortify\Contracts\LoginResponse::class,
             \App\Http\Responses\LoginResponse::class
         );
 
-        //Register
-        // Fortify::registerView(function () {
-        //     return view('auth.register');
-        // });
+        $this->app->singleton(
+            \Laravel\Fortify\Contracts\RegisterResponse::class,
+            \App\Http\Responses\RegisterResponse::class
+        );
 
-        Fortify::redirects('register', '/');
+        // Redirect setelah register (opsional)
+        Fortify::redirects('register', '/dashboard');
 
-        //Lupa Password
-        Fortify::requestPasswordResetLinkView(function () {
-            return view('auth.forgot-password');
-        });
-
-        // Reset Password
-        Fortify::resetPasswordView(function ($request) {
-            return view('auth.reset-password', ['request' => $request]);
-        });
+        // View lupa & reset password
+        Fortify::requestPasswordResetLinkView(fn() => view('auth.forgot-password'));
+        Fortify::resetPasswordView(fn($request) => view('auth.reset-password', ['request' => $request]));
     }
 }

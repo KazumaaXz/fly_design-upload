@@ -22,7 +22,6 @@
     </div>
 
     <hr class="mt-5 mb-0 text-secondary">
-    @include('layouts.frontend.footer')
 
     @include('layouts.frontend.script')
 </body>
